@@ -1,0 +1,18 @@
+# Maintainer: mmeissner <https://github.com/mmeissner>
+pkgname=waydroid-tray
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="System tray icon to start and stop Waydroid manually"
+arch=(any)
+url="https://github.com/mmeissner/waydroid-tray"
+license=(MIT)
+depends=(waydroid python-pyqt6)
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')  # replace with the real checksum when tagging v1.0.0
+
+package() {
+    cd "$srcdir/$pkgname-$pkgver"
+    install -Dm755 waydroid-tray.py "$pkgdir/usr/bin/waydroid-tray"
+    install -Dm644 packaging/waydroid-tray.desktop "$pkgdir/etc/xdg/autostart/waydroid-tray.desktop"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

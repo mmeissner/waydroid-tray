@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Waydroid Tray
+GenericName=Waydroid Tray Icon
+Comment=Start and stop Waydroid from the system tray
+Exec=waydroid-tray
+TryExec=waydroid-tray
+Terminal=false
+Icon=waydroid
+Categories=System;Utility;
+Keywords=waydroid;android;tray;
