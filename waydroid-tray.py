@@ -22,12 +22,14 @@ License: MIT — see the LICENSE file.
 from __future__ import annotations
 
 import argparse
+import faulthandler
 import os
 import re
 import subprocess
 import sys
 import threading
 import time
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -71,8 +73,30 @@ LOG_DIR = Path(
 ) / "waydroid-tray"
 
 
+_log_fh = None
+
+
 def log(msg: str) -> None:
-    print(f"[{time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr, flush=True)
+    """Log to stderr AND to ~/.local/state/waydroid-tray/tray.log (always on,
+    so an instance started via autostart without a terminal still leaves
+    evidence when it exits or misbehaves)."""
+    line = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}"
+    print(line, file=sys.stderr, flush=True)
+    global _log_fh
+    try:
+        if _log_fh is None:
+            LOG_DIR.mkdir(parents=True, exist_ok=True)
+            _log_fh = open(LOG_DIR / "tray.log", "a")
+        _log_fh.write(line + "\n")
+        _log_fh.flush()
+    except OSError:
+        pass
+
+
+def _excepthook(exc_type, exc, tb) -> None:
+    """Uncaught exceptions must never vanish silently with autostart."""
+    log("UNCAUGHT EXCEPTION:\n" + "".join(traceback.format_exception(exc_type, exc, tb)))
+    sys.__excepthook__(exc_type, exc, tb)
 
 
 # ---------------------------------------------------------------- status
@@ -534,10 +558,19 @@ def main() -> int:
     app.setApplicationDisplayName("Waydroid Tray")
     app.setQuitOnLastWindowClosed(False)     # tray-only application
 
+    sys.excepthook = _excepthook
+    try:
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        faulthandler.enable(open(LOG_DIR / "crash.log", "w"))
+    except OSError:
+        pass
+    log(f"tray started (pid {os.getpid()}, verbose={args.verbose})")
+    app.aboutToQuit.connect(lambda: log("tray exiting"))
+
     lock = QLockFile(str(Path(QStandardPaths.writableLocation(
         QStandardPaths.StandardLocation.RuntimeLocation)) / "waydroid-tray.lock"))
     if not lock.tryLock(100):
-        log("another waydroid-tray instance is already running")
+        log("another waydroid-tray instance is already running - exiting")
         return 0
 
     monitor = Monitor(verbose=args.verbose)
