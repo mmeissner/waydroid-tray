@@ -98,6 +98,10 @@ print(f"  t={time.monotonic() - T0:.1f} transition={ok} state={monitor.state} "
 check("orange transition shown", ok)
 check("clicks swallowed during transition", "ignored" in monitor.request_toggle())
 check("start settles to green", wait_state(monitor, wt.STATE_RUNNING, 60))
+for _ in range(5):
+    QCoreApplication.processEvents(); time.sleep(0.02)
+check("menu: Show UI enabled when running", tray._ui_action.isEnabled())
+tray._ui_action.trigger()   # wiring: executes without error against the stub
 
 # --- gating while running ----------------------------------------------
 check("start NOT allowed while running", monitor.can_start() is False)
@@ -112,6 +116,7 @@ for _ in range(5):
 check("menu: Start enabled when stopped", tray._start_action.isEnabled())
 check("menu: Start enabled when stopped", tray._start_action.isEnabled())
 check("menu: Stop greyed out when stopped", tray._stop_action.isEnabled() is False)
+check("menu: Show UI greyed out when stopped", tray._ui_action.isEnabled() is False)
 
 # --- transition timeout -> red (stub only; real timeouts are 45-90 s) --
 if not REAL:

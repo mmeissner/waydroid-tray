@@ -252,6 +252,9 @@ class Monitor(QObject):
     def can_stop(self) -> bool:
         return self.state == STATE_RUNNING
 
+    def can_show_ui(self) -> bool:
+        return self.state == STATE_RUNNING
+
     def request_toggle(self) -> str:
         """Returns a short reason string for logging; never queues clicks."""
         with self._lock:
@@ -452,10 +455,14 @@ class Tray(QSystemTrayIcon):
         self._start_action.triggered.connect(self._menu_start)
         self._stop_action = QAction("Stop Waydroid")
         self._stop_action.triggered.connect(self._menu_stop)
+        self._ui_action = QAction("Show Waydroid UI")
+        self._ui_action.triggered.connect(self._menu_show_ui)
         quit_action = QAction("Quit")
         quit_action.triggered.connect(self._quit)
         menu.addAction(self._start_action)
         menu.addAction(self._stop_action)
+        menu.addSeparator()
+        menu.addAction(self._ui_action)
         menu.addSeparator()
         menu.addAction(quit_action)
         self.setContextMenu(menu)
@@ -493,6 +500,13 @@ class Tray(QSystemTrayIcon):
         if self._monitor.can_stop():
             self._toggle()
 
+    def _menu_show_ui(self) -> None:
+        if self._monitor.can_show_ui():
+            subprocess.Popen(
+                ["waydroid", "show-full-ui"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                start_new_session=True)
+
     def _quit(self) -> None:
         # never touches the running/stopped waydroid state
         QApplication.quit()
@@ -503,6 +517,7 @@ class Tray(QSystemTrayIcon):
         self.setIcon(state_icon(state))
         self._start_action.setEnabled(self._monitor.can_start())
         self._stop_action.setEnabled(self._monitor.can_stop())
+        self._ui_action.setEnabled(self._monitor.can_show_ui())
 
 
 # ---------------------------------------------------------------- main
